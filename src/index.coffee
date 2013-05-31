@@ -16,8 +16,22 @@ class EasyMongo
     if @db isnt null and @db.state and @db.state is 'connected'
       @getCollection table, after
     else
-      server = new Server @options.host, @options.port, auto_reconnect: true
-      instance = new Db @options.db, server, safe: true
+      # server = new Server @options.host, @options.port, auto_reconnect: true
+      # instance = new Db @options.db, server, safe: true
+
+      if @options.cluster is null or !@options.cluster
+        instance = new Db @options.db, new Server @options.host, @options.port, auto_reconnect: true
+      else   
+        repl_servers = []
+        repl = @options.replset
+        i = 0
+
+        while i < repl.length
+          repl_servers.push new Server(repl[i].host, repl[i].port)
+          i++
+
+        instance = new Db @options.db, new ReplSet repl_servers, 
+            rs_name: @options.rsname, read_secondary: true
 
       instance.open (error, db) =>
         console.log "Error with connection to MongoDB server: #{error}" if error
